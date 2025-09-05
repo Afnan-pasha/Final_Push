@@ -1,0 +1,144 @@
+package com.loanmanagement.service;
+
+import com.loanmanagement.dto.ForgotPasswordRequest;
+import com.loanmanagement.dto.RegisterRequest;
+import com.loanmanagement.dto.ResetPasswordRequest;
+import com.loanmanagement.dto.UserResponse;
+import com.loanmanagement.dto.UpdateProfileRequest;
+import com.loanmanagement.dto.ChangePasswordRequest;
+import com.loanmanagement.model.PasswordResetToken;
+import com.loanmanagement.model.Role;
+import com.loanmanagement.model.User;
+import com.loanmanagement.repository.PasswordResetTokenRepository;
+import com.loanmanagement.repository.UserRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Optional;
+import java.util.UUID;
+
+@Service
+public class AuthService {
+
+    private final UserRepository userRepository;
+    private final PasswordResetTokenRepository tokenRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    public AuthService(UserRepository userRepository,
+                       PasswordResetTokenRepository tokenRepository,
+                       PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.tokenRepository = tokenRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @Transactional
+    public UserResponse register(RegisterRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email already registered");
+        }
+
+        User user = new User();
+        user.setEmail(request.getEmail().toLowerCase());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setName(request.getName());
+        user.setPhone(request.getPhone());
+        // Force self-registration to CUSTOMER only
+        user.setRole(Role.CUSTOMER);
+        User saved = userRepository.save(user);
+        return new UserResponse(saved.getId(), saved.getEmail(), saved.getRole(), saved.getName(), saved.getPhone());
+    }
+
+    public UserResponse me() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new IllegalStateException("Not authenticated");
+        }
+        String email = auth.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalStateException("User not found"));
+        return new UserResponse(user.getId(), user.getEmail(), user.getRole(), user.getName(), user.getPhone());
+    }
+
+    @Transactional
+    public UserResponse updateProfile(UpdateProfileRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new IllegalStateException("Not authenticated");
+        }
+        String currentEmail = auth.getName();
+        User user = userRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new IllegalStateException("User not found"));
+
+        // If email is changing, ensure not taken
+        String newEmail = request.getEmail().toLowerCase();
+        if (!newEmail.equalsIgnoreCase(user.getEmail()) && userRepository.existsByEmail(newEmail)) {
+            throw new IllegalArgumentException("Email already in use");
+        }
+
+        user.setEmail(newEmail);
+        user.setName(request.getName());
+        user.setPhone(request.getPhone());
+        User saved = userRepository.save(user);
+        return new UserResponse(saved.getId(), saved.getEmail(), saved.getRole(), saved.getName(), saved.getPhone());
+    }
+
+    @Transactional
+    public String changePassword(ChangePasswordRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new IllegalStateException("Not authenticated");
+        }
+        String email = auth.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalStateException("User not found"));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        return "Password changed successfully";
+    }
+
+    @Transactional
+    public String forgotPassword(ForgotPasswordRequest request) {
+        Optional<User> userOpt = userRepository.findByEmail(request.getEmail().toLowerCase());
+        // Always respond the same to avoid user enumeration
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            // Create token valid for 30 minutes
+            String token = UUID.randomUUID().toString();
+            PasswordResetToken prt = new PasswordResetToken();
+            prt.setToken(token);
+            prt.setUser(user);
+            prt.setExpiresAt(Instant.now().plus(30, ChronoUnit.MINUTES));
+            tokenRepository.save(prt);
+
+            // For now, just log the reset link to console. Replace with email later.
+            String link = "http://localhost:3000/reset-password?token=" + token; // frontend URL can be updated
+            System.out.println("[Password Reset] Send this link to user: " + link);
+        }
+        return "If the email exists, a reset link has been sent.";
+    }
+
+    @Transactional
+    public String resetPassword(ResetPasswordRequest request) {
+        PasswordResetToken token = tokenRepository.findByToken(request.getToken())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid or expired token"));
+        if (token.getExpiresAt().isBefore(Instant.now())) {
+            tokenRepository.deleteByToken(request.getToken());
+            throw new IllegalArgumentException("Invalid or expired token");
+        }
+        User user = token.getUser();
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        tokenRepository.deleteByToken(request.getToken());
+        return "Password has been reset successfully";
+    }
+}

@@ -1,0 +1,69 @@
+package com.loanmanagement.controller;
+
+import com.loanmanagement.dto.ForgotPasswordRequest;
+import com.loanmanagement.dto.RegisterRequest;
+import com.loanmanagement.dto.ResetPasswordRequest;
+import com.loanmanagement.dto.UserResponse;
+import com.loanmanagement.dto.UpdateProfileRequest;
+import com.loanmanagement.dto.ChangePasswordRequest;
+import com.loanmanagement.service.AuthService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/auth")
+public class AuthController {
+
+    private final AuthService authService;
+
+    public AuthController(AuthService authService) {
+        this.authService = authService;
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
+        UserResponse user = authService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(user);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> me() {
+        return ResponseEntity.ok(authService.me());
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<UserResponse> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
+        UserResponse updated = authService.updateProfile(request);
+        return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<String> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        String msg = authService.changePassword(request);
+        return ResponseEntity.ok(msg);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        String msg = authService.forgotPassword(request);
+        return ResponseEntity.ok(msg);
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        String msg = authService.resetPassword(request);
+        return ResponseEntity.ok(msg);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleBadRequest(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest().body(ex.getMessage());
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<String> handleIllegalState(IllegalStateException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
+    }
+}

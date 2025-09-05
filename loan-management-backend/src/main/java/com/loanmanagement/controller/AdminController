@@ -1,0 +1,47 @@
+package com.loanmanagement.controller;
+
+import com.loanmanagement.dto.CreateUserRequest;
+import com.loanmanagement.dto.UserResponse;
+import com.loanmanagement.model.Role;
+import com.loanmanagement.model.User;
+import com.loanmanagement.repository.UserRepository;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/admin")
+public class AdminController {
+
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    public AdminController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    // ADMIN can create MAKER/CHECKER/ADMIN users
+    @PostMapping("/users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest req) {
+        if (userRepository.existsByEmail(req.getEmail().toLowerCase())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
+        if (req.getRole() == Role.CUSTOMER) {
+            return ResponseEntity.badRequest().build();
+        }
+        User u = new User();
+        u.setEmail(req.getEmail().toLowerCase());
+        u.setPassword(passwordEncoder.encode(req.getPassword()));
+        u.setRole(req.getRole());
+        u.setName(req.getName());
+        u.setPhone(req.getPhone());
+        User saved = userRepository.save(u);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new UserResponse(saved.getId(), saved.getEmail(), saved.getRole(), saved.getName(), saved.getPhone()));
+    }
+}

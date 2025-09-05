@@ -1,0 +1,8 @@
+package com.loanmanagement.model;
+
+public enum Role {
+    CUSTOMER,
+    MAKER,
+    CHECKER,
+    ADMIN
+}
