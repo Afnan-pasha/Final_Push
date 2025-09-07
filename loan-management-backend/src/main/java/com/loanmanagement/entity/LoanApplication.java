@@ -69,6 +69,12 @@ public class LoanApplication {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
+    @Column(name = "customer_email")
+    private String customerEmail;
+    
+    @Column(name = "customer_id")
+    private Long customerId;
+    
     @OneToMany(mappedBy = "loanApplication", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Document> documents;
     
@@ -160,4 +166,10 @@ public class LoanApplication {
     
     public List<ExistingLoan> getExistingLoans() { return existingLoans; }
     public void setExistingLoans(List<ExistingLoan> existingLoans) { this.existingLoans = existingLoans; }
+    
+    public String getCustomerEmail() { return customerEmail; }
+    public void setCustomerEmail(String customerEmail) { this.customerEmail = customerEmail; }
+    
+    public Long getCustomerId() { return customerId; }
+    public void setCustomerId(Long customerId) { this.customerId = customerId; }
 }

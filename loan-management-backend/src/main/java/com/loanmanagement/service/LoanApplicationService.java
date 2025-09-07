@@ -37,6 +37,14 @@ public class LoanApplicationService {
         loanApplication.setPurpose(request.getPurpose());
         loanApplication.setCollateral(request.getCollateral());
         
+        // Set customer information from request or authentication context
+        if (request.getCustomerEmail() != null) {
+            loanApplication.setCustomerEmail(request.getCustomerEmail());
+        }
+        if (request.getCustomerId() != null) {
+            loanApplication.setCustomerId(request.getCustomerId());
+        }
+        
         // Calculate EMI and total amount
         calculateLoanDetails(loanApplication);
         
@@ -56,6 +64,44 @@ public class LoanApplicationService {
     
     public List<LoanApplicationResponse> getAllLoans() {
         List<LoanApplication> loans = loanApplicationRepository.findAllByOrderByApplicationDateDesc();
+        return loans.stream()
+                   .map(LoanApplicationResponse::new)
+                   .collect(Collectors.toList());
+    }
+    
+    public List<LoanApplicationResponse> getLoanApplicationsByFilters(String userId, String status, String loanType) {
+        List<LoanApplication> loans = loanApplicationRepository.findAllByOrderByApplicationDateDesc();
+        
+        // Filter by userId if provided (could be email or ID)
+        if (userId != null && !userId.trim().isEmpty()) {
+            loans = loans.stream()
+                    .filter(loan -> loan.getCustomerEmail() != null && 
+                           (loan.getCustomerEmail().equals(userId) || 
+                            String.valueOf(loan.getCustomerId()).equals(userId)))
+                    .collect(Collectors.toList());
+        }
+        
+        // Filter by status if provided
+        if (status != null && !status.trim().isEmpty()) {
+            try {
+                LoanApplication.LoanStatus statusEnum = LoanApplication.LoanStatus.valueOf(status.toUpperCase());
+                loans = loans.stream()
+                        .filter(loan -> loan.getStatus() == statusEnum)
+                        .collect(Collectors.toList());
+            } catch (IllegalArgumentException e) {
+                // Invalid status, return empty list
+                return List.of();
+            }
+        }
+        
+        // Filter by loan type if provided
+        if (loanType != null && !loanType.trim().isEmpty()) {
+            loans = loans.stream()
+                    .filter(loan -> loan.getLoanType() != null && 
+                           loan.getLoanType().equalsIgnoreCase(loanType))
+                    .collect(Collectors.toList());
+        }
+        
         return loans.stream()
                    .map(LoanApplicationResponse::new)
                    .collect(Collectors.toList());

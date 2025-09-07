@@ -35,9 +35,11 @@ CREATE TABLE notifications (
 CREATE TABLE documents (
     id BIGSERIAL PRIMARY KEY,
     loan_application_id BIGINT REFERENCES loan_applications(id) ON DELETE CASCADE,
-    document_name VARCHAR(255) NOT NULL,
-    document_type VARCHAR(100) NOT NULL,
-    file_path VARCHAR(500) NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    original_name VARCHAR(255) NOT NULL,
+    file_type VARCHAR(100) NOT NULL,
     file_size BIGINT,
-    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    file_path VARCHAR(500) NOT NULL,
+    document_type VARCHAR(100) NOT NULL,
+    upload_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

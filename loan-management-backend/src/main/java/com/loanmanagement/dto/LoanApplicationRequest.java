@@ -26,6 +26,8 @@ public class LoanApplicationRequest {
     
     private String purpose;
     private String collateral;
+    private String customerEmail;
+    private Long customerId;
     
     // Constructors
     public LoanApplicationRequest() {}
@@ -56,4 +58,10 @@ public class LoanApplicationRequest {
     
     public String getCollateral() { return collateral; }
     public void setCollateral(String collateral) { this.collateral = collateral; }
+    
+    public String getCustomerEmail() { return customerEmail; }
+    public void setCustomerEmail(String customerEmail) { this.customerEmail = customerEmail; }
+    
+    public Long getCustomerId() { return customerId; }
+    public void setCustomerId(Long customerId) { this.customerId = customerId; }
 }

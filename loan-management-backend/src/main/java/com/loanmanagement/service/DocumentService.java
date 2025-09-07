@@ -59,7 +59,11 @@ public class DocumentService {
         document.setUploadDate(LocalDateTime.now());
         document.setLoanApplication(loanApplication);
         
-        return documentRepository.save(document);
+        System.out.println("Saving document: " + document.getOriginalName() + " for loan: " + loanApplicationId);
+        Document savedDocument = documentRepository.save(document);
+        System.out.println("Document saved with ID: " + savedDocument.getId());
+        
+        return savedDocument;
     }
     
     public List<Document> getDocumentsByLoanApplication(Long loanApplicationId) {

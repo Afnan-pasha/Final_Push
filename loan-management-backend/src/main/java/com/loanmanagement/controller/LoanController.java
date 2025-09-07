@@ -7,6 +7,8 @@ import com.loanmanagement.service.LoanApplicationService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -24,6 +26,12 @@ public class LoanController {
     @PostMapping("/apply")
     public ResponseEntity<?> applyForLoan(@Valid @RequestBody LoanApplicationRequest request) {
         try {
+            // Get authenticated user information from Security Context
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.getName() != null) {
+                request.setCustomerEmail(authentication.getName()); // Set email from authenticated user
+            }
+            
             LoanApplicationResponse response = loanApplicationService.applyForLoan(request);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -34,6 +42,15 @@ public class LoanController {
     @GetMapping("/my-loans")
     public ResponseEntity<List<LoanApplicationResponse>> getMyLoans() {
         List<LoanApplicationResponse> loans = loanApplicationService.getAllLoans();
+        return ResponseEntity.ok(loans);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<LoanApplicationResponse>> getLoanApplications(
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String loanType) {
+        List<LoanApplicationResponse> loans = loanApplicationService.getLoanApplicationsByFilters(userId, status, loanType);
         return ResponseEntity.ok(loans);
     }
 
