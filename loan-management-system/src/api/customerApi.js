@@ -62,8 +62,31 @@ export async function submitLoanApplication(applicationData) {
       jsonData = applicationData;
     }
     
+    // Validate required fields before sending
+    if (!jsonData.firstName || jsonData.firstName.trim() === '') {
+      throw new Error('First name is required');
+    }
+    if (!jsonData.lastName || jsonData.lastName.trim() === '') {
+      throw new Error('Last name is required');
+    }
+    if (!jsonData.phoneNumber || jsonData.phoneNumber.trim() === '') {
+      throw new Error('Phone number is required');
+    }
+    if (!jsonData.email || jsonData.email.trim() === '') {
+      throw new Error('Email is required');
+    }
+    
     // Map frontend fields to backend expected format
     const backendRequest = {
+      // Customer Details (required by backend)
+      firstName: jsonData.firstName.trim(),
+      middleName: jsonData.middleName ? jsonData.middleName.trim() : '',
+      lastName: jsonData.lastName.trim(),
+      phoneNumber: jsonData.phoneNumber.trim(),
+      email: jsonData.email.trim(),
+      userId: jsonData.userId || creds.email,
+      
+      // Loan Details
       loanType: jsonData.loanType,
       loanAmount: parseFloat(jsonData.loanAmount),
       interestRate: parseFloat(jsonData.interestRate || 8.5), // Default rate if not provided
@@ -97,6 +120,12 @@ export async function submitLoanApplication(applicationData) {
 export async function getLoanApplications(filters = {}) {
   try {
     const creds = getStoredCredentials();
+    console.log('getLoanApplications - Credentials check:', { 
+      hasCredentials: !!creds, 
+      email: creds?.email,
+      hasPassword: !!creds?.password 
+    });
+    
     if (!creds) throw new Error('Authentication required. Please login again.');
     
     const params = new URLSearchParams();
@@ -104,11 +133,25 @@ export async function getLoanApplications(filters = {}) {
     if (filters.status) params.append('status', filters.status);
     if (filters.loanType) params.append('loanType', filters.loanType);
 
-    const res = await api.get(`/api/loans?${params.toString()}`, {
+    const url = `/api/loans${params.toString() ? '?' + params.toString() : ''}`;
+    console.log('Making API request to:', url);
+    console.log('With auth:', { username: creds.email });
+
+    const res = await api.get(url, {
       auth: { username: creds.email, password: creds.password },
     });
+    
+    console.log('API Response status:', res.status);
+    console.log('API Response data:', res.data);
     return res.data;
   } catch (err) {
+    console.error('getLoanApplications error:', {
+      message: err.message,
+      status: err.response?.status,
+      statusText: err.response?.statusText,
+      data: err.response?.data,
+      url: err.config?.url
+    });
     throw toError(err, 'Failed to fetch loan applications');
   }
 }
@@ -245,6 +288,51 @@ export async function downloadDocument(documentId, auth) {
   }
 }
 
+// -----------------
+// References API
+// -----------------
+export async function createReference(loanApplicationId, referenceData) {
+  try {
+    const creds = getStoredCredentials();
+    if (!creds) throw new Error('Authentication required. Please login again.');
+
+    const res = await api.post(`/api/references/loan/${loanApplicationId}`, referenceData, {
+      auth: { username: creds.email, password: creds.password },
+    });
+    return res.data;
+  } catch (err) {
+    throw toError(err, 'Failed to create reference');
+  }
+}
+
+export async function getReferencesByLoanApplication(loanApplicationId) {
+  try {
+    const creds = getStoredCredentials();
+    if (!creds) throw new Error('Authentication required. Please login again.');
+
+    const res = await api.get(`/api/references/loan/${loanApplicationId}`, {
+      auth: { username: creds.email, password: creds.password },
+    });
+    return res.data;
+  } catch (err) {
+    throw toError(err, 'Failed to fetch references');
+  }
+}
+
+export async function updateReference(referenceId, referenceData) {
+  try {
+    const creds = getStoredCredentials();
+    if (!creds) throw new Error('Authentication required. Please login again.');
+
+    const res = await api.put(`/api/references/${referenceId}`, referenceData, {
+      auth: { username: creds.email, password: creds.password },
+    });
+    return res.data;
+  } catch (err) {
+    throw toError(err, 'Failed to update reference');
+  }
+}
+
 export async function deleteDocument(documentId, auth) {
   try {
     const res = await api.delete(`/api/documents/${documentId}`, {
@@ -257,7 +345,7 @@ export async function deleteDocument(documentId, auth) {
 }
 
 // -----------------
-// References API
+// Existing Loans API
 // -----------------
 export async function submitReferences(referencesData, auth) {
   try {
@@ -285,21 +373,13 @@ export async function getReferences(auth, filters = {}) {
   }
 }
 
-export async function updateReference(referenceId, referenceData, auth) {
+export async function deleteReference(referenceId) {
   try {
-    const res = await api.put(`/api/references/${referenceId}`, referenceData, {
-      auth: { username: auth.email, password: auth.password },
-    });
-    return res.data;
-  } catch (err) {
-    throw toError(err, 'Failed to update reference');
-  }
-}
+    const creds = getStoredCredentials();
+    if (!creds) throw new Error('Authentication required. Please login again.');
 
-export async function deleteReference(referenceId, auth) {
-  try {
     const res = await api.delete(`/api/references/${referenceId}`, {
-      auth: { username: auth.email, password: auth.password },
+      auth: { username: creds.email, password: creds.password },
     });
     return res.data;
   } catch (err) {

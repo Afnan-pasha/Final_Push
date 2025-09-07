@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Drawer,
@@ -50,9 +50,34 @@ const Layout = ({ children, userType }) => {
   const { user, logout } = useAuth();
   const { notifications, getNotifications } = useLoan();
 
-  // Derive unread count based on role-specific visibility
-  const roleUnread = userType && user ? getNotifications(user.id, userType).filter(n => !n.read).length : 0;
-  const unreadNotifications = roleUnread;
+  // Derive unread count with real-time updates for customers
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      if (userType === 'customer') {
+        try {
+          const { getNotifications } = await import('../../api/customerApi');
+          const notifications = await getNotifications();
+          const unreadCount = notifications.filter(n => !n.read).length;
+          setUnreadNotifications(unreadCount);
+        } catch (error) {
+          console.error('Failed to fetch unread notifications count:', error);
+          setUnreadNotifications(0);
+        }
+      } else {
+        // For maker/checker, use existing logic
+        const roleUnread = userType && user ? getNotifications(user.id, userType).filter(n => !n.read).length : 0;
+        setUnreadNotifications(roleUnread);
+      }
+    };
+
+    fetchUnreadCount();
+    
+    // Refresh count every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [userType, user, getNotifications]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);

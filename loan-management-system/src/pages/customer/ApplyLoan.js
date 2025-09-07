@@ -46,7 +46,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
-import { submitLoanApplication, uploadDocument, createFormData, formatApiError } from '../../api/customerApi';
+import { submitLoanApplication, uploadDocument, createFormData, formatApiError, createReference } from '../../api/customerApi';
 
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
@@ -324,8 +324,97 @@ const ApplyLoan = () => {
       // Submit to backend API
       const result = await submitLoanApplication(formDataToSend);
       
+      // Upload documents if application was created successfully
+      if (result && (result.applicationId || result.id)) {
+        const applicationId = result.applicationId || result.id;
+        
+        // Upload documents
+        const fileFields = [
+          'photograph', 'aadharCard', 'panCard', 'passport', 'drivingLicense', 'addressProof',
+          'paySlips', 'itrDocuments', 'bankStatements', 'employmentProof', 'offerLetter', 'idCard',
+          'hrLetter', 'businessProof', 'gstCertificate', 'businessLicense', 'businessAddressProof',
+          'saleAgreement', 'ecDocument', 'vehicleInvoice', 'vehicleQuotation'
+        ];
+        
+        const documentTypeMapping = {
+          'photograph': 'ID_PROOF',
+          'aadharCard': 'ID_PROOF',
+          'panCard': 'ID_PROOF',
+          'passport': 'ID_PROOF',
+          'drivingLicense': 'ID_PROOF',
+          'addressProof': 'ADDRESS_PROOF',
+          'paySlips': 'INCOME_PROOF',
+          'itrDocuments': 'INCOME_PROOF',
+          'bankStatements': 'BANK_STATEMENT',
+          'employmentProof': 'EMPLOYMENT_PROOF',
+          'offerLetter': 'EMPLOYMENT_PROOF',
+          'idCard': 'EMPLOYMENT_PROOF',
+          'hrLetter': 'EMPLOYMENT_PROOF',
+          'businessProof': 'EMPLOYMENT_PROOF',
+          'gstCertificate': 'OTHER',
+          'businessLicense': 'OTHER',
+          'businessAddressProof': 'ADDRESS_PROOF',
+          'saleAgreement': 'OTHER',
+          'ecDocument': 'OTHER',
+          'vehicleInvoice': 'OTHER',
+          'vehicleQuotation': 'OTHER'
+        };
+        
+        try {
+          const creds = { email: user?.email, password: 'temp' }; // You'll need proper auth
+          
+          for (const fieldName of fileFields) {
+            const file = formData[fieldName];
+            if (file && file instanceof File) {
+              const documentFormData = new FormData();
+              documentFormData.append('file', file);
+              documentFormData.append('documentType', documentTypeMapping[fieldName] || 'OTHER');
+              
+              try {
+                await fetch(`/api/documents/upload/${applicationId}`, {
+                  method: 'POST',
+                  body: documentFormData,
+                  headers: {
+                    'Authorization': `Basic ${btoa(creds.email + ':' + creds.password)}`
+                  }
+                });
+                console.log(`Successfully uploaded ${fieldName}`);
+              } catch (uploadError) {
+                console.error(`Failed to upload ${fieldName}:`, uploadError);
+              }
+            }
+          }
+        } catch (documentError) {
+          console.error('Error uploading documents:', documentError);
+          // Don't fail the entire submission if document upload fails
+        }
+      }
+      
+      // Save references to backend if application was created successfully
+      if (result && (result.applicationId || result.id) && formData.references.length > 0) {
+        const applicationId = result.applicationId || result.id;
+        
+        try {
+          // Create each reference
+          for (const reference of formData.references) {
+            await createReference(applicationId, {
+              name: reference.name,
+              relationship: reference.relationship,
+              contactNumber: reference.contactNumber,
+              address: reference.address || ''
+            });
+          }
+          console.log(`Successfully saved ${formData.references.length} references for application ${applicationId}`);
+        } catch (referenceError) {
+          console.error('Error saving references:', referenceError);
+          // Don't fail the entire submission if references fail
+        }
+      }
+      
       alert(` Congratulations! Your loan application has been submitted successfully!\n\n📋 Application ID: ${result.applicationId || result.id}\n⏰ Expected Review Time: 24-48 hours\n📧 You will receive updates via email and SMS\n\nThank you for choosing our services!`);
-      navigate('/customer');
+      
+      // Trigger dashboard refresh when navigating back
+      navigate('/customer', { state: { refreshDashboard: true } });
       
     } catch (error) {
       console.error('Submission error:', error);

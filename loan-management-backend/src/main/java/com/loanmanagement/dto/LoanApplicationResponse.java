@@ -8,6 +8,16 @@ import java.time.LocalDateTime;
 public class LoanApplicationResponse {
     
     private Long id;
+    
+    // Customer Details
+    private String firstName;
+    private String middleName;
+    private String lastName;
+    private String phoneNumber;
+    private String email;
+    private String userId;
+    
+    // Loan Details
     private String loanType;
     private BigDecimal loanAmount;
     private BigDecimal interestRate;
@@ -20,12 +30,25 @@ public class LoanApplicationResponse {
     private LocalDateTime applicationDate;
     private LocalDateTime approvalDate;
     private String rejectionReason;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private LocalDateTime submittedAt;
     
     // Constructors
     public LoanApplicationResponse() {}
     
     public LoanApplicationResponse(LoanApplication loan) {
         this.id = loan.getId();
+        
+        // Set customer details
+        this.firstName = loan.getFirstName();
+        this.middleName = loan.getMiddleName();
+        this.lastName = loan.getLastName();
+        this.phoneNumber = loan.getPhoneNumber();
+        this.email = loan.getEmail();
+        this.userId = loan.getUserId();
+        
+        // Set loan details
         this.loanType = loan.getLoanType();
         this.loanAmount = loan.getLoanAmount();
         this.interestRate = loan.getInterestRate();
@@ -38,12 +61,35 @@ public class LoanApplicationResponse {
         this.applicationDate = loan.getApplicationDate();
         this.approvalDate = loan.getApprovalDate();
         this.rejectionReason = loan.getRejectionReason();
+        this.createdAt = loan.getCreatedAt();
+        this.updatedAt = loan.getUpdatedAt();
+        this.submittedAt = loan.getSubmittedAt();
     }
     
     // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     
+    // Customer Details Getters and Setters
+    public String getFirstName() { return firstName; }
+    public void setFirstName(String firstName) { this.firstName = firstName; }
+    
+    public String getMiddleName() { return middleName; }
+    public void setMiddleName(String middleName) { this.middleName = middleName; }
+    
+    public String getLastName() { return lastName; }
+    public void setLastName(String lastName) { this.lastName = lastName; }
+    
+    public String getPhoneNumber() { return phoneNumber; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+    
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
+    
+    // Loan Details Getters and Setters
     public String getLoanType() { return loanType; }
     public void setLoanType(String loanType) { this.loanType = loanType; }
     
@@ -79,4 +125,28 @@ public class LoanApplicationResponse {
     
     public String getRejectionReason() { return rejectionReason; }
     public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
+    
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    
+    public LocalDateTime getSubmittedAt() { return submittedAt; }
+    public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
+    
+    // Helper method to get full name
+    public String getFullName() {
+        StringBuilder fullName = new StringBuilder();
+        if (firstName != null) fullName.append(firstName);
+        if (middleName != null && !middleName.trim().isEmpty()) {
+            if (fullName.length() > 0) fullName.append(" ");
+            fullName.append(middleName);
+        }
+        if (lastName != null) {
+            if (fullName.length() > 0) fullName.append(" ");
+            fullName.append(lastName);
+        }
+        return fullName.toString();
+    }
 }

@@ -30,6 +30,16 @@ public class LoanApplicationService {
     public LoanApplicationResponse applyForLoan(LoanApplicationRequest request) {
         // Create new loan application
         LoanApplication loanApplication = new LoanApplication();
+        
+        // Set customer details
+        loanApplication.setFirstName(request.getFirstName());
+        loanApplication.setMiddleName(request.getMiddleName());
+        loanApplication.setLastName(request.getLastName());
+        loanApplication.setPhoneNumber(request.getPhoneNumber());
+        loanApplication.setEmail(request.getEmail());
+        loanApplication.setUserId(request.getUserId());
+        
+        // Set loan details
         loanApplication.setLoanType(request.getLoanType());
         loanApplication.setLoanAmount(request.getLoanAmount());
         loanApplication.setInterestRate(request.getInterestRate());
@@ -43,10 +53,11 @@ public class LoanApplicationService {
         // Save the loan application
         LoanApplication savedLoan = loanApplicationRepository.save(loanApplication);
         
-        // Create notification for loan application
+        // Create notification for loan application with customer name
+        String customerName = request.getFullName();
         notificationService.createNotification(
             "Loan Application Submitted",
-            "Your loan application for " + request.getLoanType() + " of ₹" + 
+            "Dear " + customerName + ", your loan application for " + request.getLoanType() + " of ₹" + 
             request.getLoanAmount() + " has been submitted successfully.",
             Notification.NotificationType.LOAN_APPLICATION
         );

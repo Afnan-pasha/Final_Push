@@ -21,21 +21,22 @@ import {
   Schedule,
   CheckCircle,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
 import { getDashboardData, formatApiError } from '../../api/customerApi';
 
 const CustomerDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState({
-    totalApplications: 0,
-    pendingApplications: 0,
-    approvedApplications: 0,
-    rejectedApplications: 0,
-    recentApplications: [],
-    notifications: []
+    totalLoans: 0,
+    pendingLoans: 0,
+    approvedLoans: 0,
+    unreadNotifications: 0,
+    recentLoans: [],
+    totalApprovedAmount: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -43,17 +44,48 @@ const CustomerDashboard = () => {
     loadDashboardData();
   }, [user]);
 
+  // Check if we need to refresh dashboard after navigation
+  useEffect(() => {
+    if (location.state?.refreshDashboard) {
+      loadDashboardData();
+      // Clear the state to prevent repeated refreshes
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, location.pathname]);
+
+  // Refresh dashboard when component becomes visible (e.g., after navigation)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadDashboardData();
+      }
+    };
+
+    const handleFocus = () => {
+      loadDashboardData();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
   const loadDashboardData = async () => {
     try {
       setLoading(true);
       const result = await getDashboardData();
+      console.log('Dashboard data received:', result); // Debug log
       setDashboardData(result || {
-        totalApplications: 0,
-        pendingApplications: 0,
-        approvedApplications: 0,
-        rejectedApplications: 0,
-        recentApplications: [],
-        notifications: []
+        totalLoans: 0,
+        pendingLoans: 0,
+        approvedLoans: 0,
+        unreadNotifications: 0,
+        recentLoans: [],
+        totalApprovedAmount: 0
       });
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
@@ -61,6 +93,9 @@ const CustomerDashboard = () => {
       setLoading(false);
     }
   };
+
+  // Expose refresh function for external use
+  window.refreshDashboard = loadDashboardData;
 
   const menuOptions = [
     {
@@ -140,9 +175,9 @@ const CustomerDashboard = () => {
             <Grid item xs={12} sm={6} md={3}>
               <Card elevation={3} sx={{ borderRadius: 3, textAlign: 'center', p: 2 }}>
                 <CardContent>
-                  <TrendingUp sx={{ fontSize: 40, color: '#2196f3', mb: 1 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#2196f3' }}>
-                    {dashboardData.totalApplications}
+                  <TrendingUp sx={{ fontSize: 40, color: '#20b43', mb: 1 }} />
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#020b43' }}>
+                    {dashboardData.totalLoans}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Total Applications
@@ -153,9 +188,9 @@ const CustomerDashboard = () => {
             <Grid item xs={12} sm={6} md={3}>
               <Card elevation={3} sx={{ borderRadius: 3, textAlign: 'center', p: 2 }}>
                 <CardContent>
-                  <Schedule sx={{ fontSize: 40, color: '#ff9800', mb: 1 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#ff9800' }}>
-                    {dashboardData.pendingApplications}
+                  <Schedule sx={{ fontSize: 40, color: '#020b43', mb: 1 }} />
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#020b43' }}>
+                    {dashboardData.pendingLoans}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Pending Review
@@ -166,9 +201,9 @@ const CustomerDashboard = () => {
             <Grid item xs={12} sm={6} md={3}>
               <Card elevation={3} sx={{ borderRadius: 3, textAlign: 'center', p: 2 }}>
                 <CardContent>
-                  <CheckCircle sx={{ fontSize: 40, color: '#4caf50', mb: 1 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#4caf50' }}>
-                    {dashboardData.approvedApplications}
+                  <CheckCircle sx={{ fontSize: 40, color: '#020b43', mb: 1 }} />
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#020b43' }}>
+                    {dashboardData.approvedLoans}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Approved
@@ -179,9 +214,9 @@ const CustomerDashboard = () => {
             <Grid item xs={12} sm={6} md={3}>
               <Card elevation={3} sx={{ borderRadius: 3, textAlign: 'center', p: 2 }}>
                 <CardContent>
-                  <NotificationsIcon sx={{ fontSize: 40, color: '#f44336', mb: 1 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#f44336' }}>
-                    {dashboardData.notifications?.length || 0}
+                  <NotificationsIcon sx={{ fontSize: 40, color: '#020b43', mb: 1 }} />
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#020b43' }}>
+                    {dashboardData.unreadNotifications || 0}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Notifications

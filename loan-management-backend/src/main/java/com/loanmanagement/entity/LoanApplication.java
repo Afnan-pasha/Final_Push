@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -18,7 +19,29 @@ public class LoanApplication {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    // Customer Details
+    @Column(name = "first_name")
+    private String firstName;
     
+    @Column(name = "middle_name")
+    private String middleName;
+    
+    @Column(name = "last_name")
+    private String lastName;
+    
+    @Column(name = "phone_number")
+    private String phoneNumber;
+    
+    @Column(name = "email")
+    private String email;
+    
+    @Column(name = "user_id")
+    private String userId;
+    
+    @Column(name = "submitted_at")
+    private LocalDateTime submittedAt;
+    
+    // Loan Details
     @NotBlank(message = "Loan type is required")
     @Column(name = "loan_type", nullable = false)
     private String loanType;
@@ -87,6 +110,9 @@ public class LoanApplication {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
         applicationDate = LocalDateTime.now();
+        if (submittedAt == null) {
+            submittedAt = LocalDateTime.now();
+        }
     }
     
     @PreUpdate
@@ -109,7 +135,29 @@ public class LoanApplication {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     
+    // Customer Details Getters and Setters
+    public String getFirstName() { return firstName; }
+    public void setFirstName(String firstName) { this.firstName = firstName; }
     
+    public String getMiddleName() { return middleName; }
+    public void setMiddleName(String middleName) { this.middleName = middleName; }
+    
+    public String getLastName() { return lastName; }
+    public void setLastName(String lastName) { this.lastName = lastName; }
+    
+    public String getPhoneNumber() { return phoneNumber; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+    
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
+    
+    public LocalDateTime getSubmittedAt() { return submittedAt; }
+    public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
+    
+    // Loan Details Getters and Setters
     public String getLoanType() { return loanType; }
     public void setLoanType(String loanType) { this.loanType = loanType; }
     
